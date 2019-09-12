@@ -12,7 +12,7 @@ set -e
 #
 
 N_MONO=10000000  # number of monolingual sentences for each language
-CODES=60000      # number of BPE codes
+CODES=1000      # number of BPE codes
 N_THREADS=48     # number of threads in data preprocessing
 N_EPOCHS=10      # number of fastText epochs
 
@@ -50,8 +50,8 @@ FASTTEXT_DIR=$TOOLS_PATH/fastText
 FASTTEXT=$FASTTEXT_DIR/fasttext
 
 # files full paths
-SRC_RAW=$MONO_PATH/clozecorpus.txt
-TGT_RAW=$MONO_PATH/naturalcorpus.txt
+SRC_RAW=$MONO_PATH/all.en
+TGT_RAW=$MONO_PATH/all.fr
 SRC_TOK=$MONO_PATH/all.en.tok
 TGT_TOK=$MONO_PATH/all.fr.tok
 BPE_CODES=$MONO_PATH/bpe_codes
@@ -64,66 +64,10 @@ TGT_VALID=$PARA_PATH/dev/newstest2013-ref.fr
 SRC_TEST=$PARA_PATH/dev/newstest2014-fren-src.en
 TGT_TEST=$PARA_PATH/dev/newstest2014-fren-src.fr
 
-
-#
-# Download and install tools
-#
-
-# Download Moses
-cd $TOOLS_PATH
-if [ ! -d "$MOSES" ]; then
-  echo "Cloning Moses from GitHub repository..."
-  git clone https://github.com/moses-smt/mosesdecoder.git
-fi
-echo "Moses found in: $MOSES"
-
-# Download fastBPE
-cd $TOOLS_PATH
-if [ ! -d "$FASTBPE_DIR" ]; then
-  echo "Cloning fastBPE from GitHub repository..."
-  git clone https://github.com/glample/fastBPE
-fi
-echo "fastBPE found in: $FASTBPE_DIR"
-
-# Compile fastBPE
-cd $TOOLS_PATH
-if [ ! -f "$FASTBPE" ]; then
-  echo "Compiling fastBPE..."
-  cd $FASTBPE_DIR
-  g++ -std=c++11 -pthread -O3 fastBPE/main.cc -IfastBPE -o fast
-fi
-echo "fastBPE compiled in: $FASTBPE"
-
-# Download fastText
-cd $TOOLS_PATH
-if [ ! -d "$FASTTEXT_DIR" ]; then
-  echo "Cloning fastText from GitHub repository..."
-  git clone https://github.com/facebookresearch/fastText.git
-fi
-echo "fastText found in: $FASTTEXT_DIR"
-
-# Compile fastText
-cd $TOOLS_PATH
-if [ ! -f "$FASTTEXT" ]; then
-  echo "Compiling fastText..."
-  cd $FASTTEXT_DIR
-  make
-fi
-echo "fastText compiled in: $FASTTEXT"
-
-
-#
-# Download monolingual data
-#
-
 cd $MONO_PATH
 
-# check number of lines
-if ! [[ "$(wc -l < $SRC_RAW)" -eq "$N_MONO" ]]; then echo "ERROR: Number of lines doesn't match! Be sure you have $N_MONO sentences in your EN monolingual data."; exit; fi
-if ! [[ "$(wc -l < $TGT_RAW)" -eq "$N_MONO" ]]; then echo "ERROR: Number of lines doesn't match! Be sure you have $N_MONO sentences in your FR monolingual data."; exit; fi
-
 # tokenize data
-if ! [[ -f "$SRC_TOK" && -f "$TGT_TOK" ]]; then
+if True; then
   echo "Tokenize monolingual data..."
   cat $SRC_RAW | $NORM_PUNC -l en | $TOKENIZER -l en -no-escape -threads $N_THREADS > $SRC_TOK
   cat $TGT_RAW | $NORM_PUNC -l fr | $TOKENIZER -l fr -no-escape -threads $N_THREADS > $TGT_TOK
@@ -132,14 +76,14 @@ echo "EN monolingual data tokenized in: $SRC_TOK"
 echo "FR monolingual data tokenized in: $TGT_TOK"
 
 # learn BPE codes
-if [ ! -f "$BPE_CODES" ]; then
+if True; then
   echo "Learning BPE codes..."
   $FASTBPE learnbpe $CODES $SRC_TOK $TGT_TOK > $BPE_CODES
 fi
 echo "BPE learned in $BPE_CODES"
 
 # apply BPE codes
-if ! [[ -f "$SRC_TOK.$CODES" && -f "$TGT_TOK.$CODES" ]]; then
+if True; then
   echo "Applying BPE codes..."
   $FASTBPE applybpe $SRC_TOK.$CODES $SRC_TOK $BPE_CODES
   $FASTBPE applybpe $TGT_TOK.$CODES $TGT_TOK $BPE_CODES
@@ -229,7 +173,7 @@ echo ""
 
 if ! [[ -f "$CONCAT_BPE" ]]; then
   echo "Concatenating source and target monolingual data..."
-  cat $SRC_TOK.$CODES $TGT_TOK.$CODES | shuf > $CONCAT_BPE
+  cat $SRC_TOK.$CODES $TGT_TOK.$CODES | gshuf > $CONCAT_BPE
 fi
 echo "Concatenated data in: $CONCAT_BPE"
 
